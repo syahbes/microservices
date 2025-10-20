@@ -1,17 +1,19 @@
 services:
-  kafka:
+  kafka-broker1:
     image: apache/kafka:latest
-    container_name: kafka
+    container_name: kafka-broker1 
     environment:
       # Apache Kafka uses KAFKA_ prefix, not KAFKA_CFG_
+      - KAFKA_ENABLE_KRAFT="yes"
       - KAFKA_NODE_ID=1
       - KAFKA_PROCESS_ROLES=broker,controller
       - KAFKA_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://0.0.0.0:9094
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
-      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka-broker1:9092,EXTERNAL://localhost:9094
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka-broker1:9093,2@kafka-broker2:9093,3@kafka-broker3:9093
       - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
       - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
       - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_KRAFT_CLUSTER_ID=8da4e341
       # Apache Kafka doesn't need ALLOW_PLAINTEXT_LISTENER
       - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
       - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
@@ -22,16 +24,68 @@ services:
     networks:
       - kafka-network
 
+  kafka-broker2:
+    image: apache/kafka:latest
+    container_name: kafka-broker2
+    environment:
+      # Apache Kafka uses KAFKA_ prefix, not KAFKA_CFG_
+      - KAFKA_ENABLE_KRAFT="yes"
+      - KAFKA_NODE_ID=2
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://0.0.0.0:9095
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka-broker2:9092,EXTERNAL://localhost:9095
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka-broker1:9093,2@kafka-broker2:9093,3@kafka-broker3:9093
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_KRAFT_CLUSTER_ID=8da4e341
+      # Apache Kafka doesn't need ALLOW_PLAINTEXT_LISTENER
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
+    ports:
+      - "9095:9095"
+    networks:
+      - kafka-network
+
+  kafka-broker3:
+    image: apache/kafka:latest
+    container_name: kafka-broker3
+    environment:
+      # Apache Kafka uses KAFKA_ prefix, not KAFKA_CFG_
+      - KAFKA_ENABLE_KRAFT="yes"
+      - KAFKA_NODE_ID=3
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://0.0.0.0:9096
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka-broker3:9092,EXTERNAL://localhost:9096
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka-broker1:9093,2@kafka-broker2:9093,3@kafka-broker3:9093
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_KRAFT_CLUSTER_ID=8da4e341
+      # Apache Kafka doesn't need ALLOW_PLAINTEXT_LISTENER
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
+    ports:
+      - "9096:9096"
+    networks:
+      - kafka-network
+
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
     depends_on:
-      - kafka
+      - kafka-broker1
+      - kafka-broker2
+      - kafka-broker3
     ports:
       - '8080:8080'
     environment:
       - KAFKA_CLUSTERS_0_NAME=local-cluster
-      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka-broker1:9092, kafka-broker2:9092, kafka-broker3:9092
       - KAFKA_CLUSTERS_0_READONLY=false
       - KAFKA_CLUSTERS_0_TOPIC_AUTO_CREATE=true
     networks:
